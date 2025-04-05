@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="src/leaflet.css">
+    <script src="src/leaflet-src.js"></script>
+    <style>
+        *{
+            padding: 0;margin: 0;
+        }
+        #mapdiv{
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="mapdiv" class="col-md-9" ></div>
+    <div id="search" class="col-md-3">
+        <div id="search_label" class="text-center col-xs-12">
+            <h4>جستجوی نقاط</h4>
+        </div>
+        <div id="search_error" class="text-center col-xs-12"></div>
+        <div id="findpoint" class="formgroup">
+            <div class="col-xs-6">
+                <button id="btnfindpoint" class="btn btn-primary btn-block">find point</button>
+            </div>
+            <div class="col-xs-6">
+                <input type="text" id="txtfindpoint" class="form-control text-center" placeholder="id ستون">
+            </div>
+        </div>
+    </div>
+    <script>
+        var mymap = L.map('mapdiv',{center:[33,53],zoom:5});
+        var lyrOSM = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png');
+        mymap.addLayer(lyrOSM);
+    </script>
+    <head>
+        <link rel="stylesheet" href="src/plugins/Leaflet.PolylineMeasure.css" />
+        <script src="src/plugins/Leaflet.PolylineMeasure.js"></script>
+    </head>
+    <script>
+        L.control.polylineMeasure().addTo(mymap);
+    </script>
+    <head>
+        <link rel="stylesheet" href="src/css/bootstrap.css">
+        <link rel="stylesheet" href="src/plugins/easy-button.css">
+        <script src="src/plugins/easy-button.js"></script>
+    </head>
+    <script>
+        var ctlEasybutton;
+        ctlEasybutton=L.easyButton('glyphicon-screenshot',function(){
+            mymap.locate();
+        }).addTo(mymap);
+        var mrkCurrentLocation;
+        mymap.on('locationfound',function(e){
+            if (mrkCurrentLocation){
+                mrkCurrentLocation.remove();
+            };
+            mrkCurrentLocation = L.circle(e.latlng,{radius:e.accuracy/2}).addTo(mymap);
+            mymap.setView(e.latlng,16);
+        });
+        mymap.on('locationerror',function(e){
+            alert("موقعیتی پیدا نشد.");
+        });
+    </script>
+    <script>
+        var mrklatlng;
+        mrklatlng = L.marker([35.700,51.391],{draggable:true}).addTo(mymap);
+        mrklatlng.bindTooltip("your location is: "+mrklatlng.getLatLng().toString());
+        mrklatlng.on('dragend',function(){
+            mrklatlng.setTooltipContent("your location is: "+mrklatlng.getLatLng().toString());
+        });
+    </script>
+    <script>
+        var plnroute;
+        plnroute = L.polyline([[35.688115,51.392906],[35.686128,51.410179],[35.685849,51.4205]],{color:'red'}).addTo(mymap);
+        mymap.fitBounds(plnroute.getBounds());
+    </script>
+    <script>
+        var ply;
+        ply=L.polygon([[[35.70115,51.419106],[35.694737,51.419878],[35.695156,51.411767],[35.699965,51.412625],
+        [35.70122,51.412754]],[[35.699233,51.41799],[35.69763,51.418333],[35.697491,51.412454],
+        [35.699861,51.412754]]],{color:'red',fillColor:'yellow',fillOpacity:0.8}).addTo(mymap);
+        mymap.fitBounds(ply.getBounds());
+    </script>
+    <head>
+        <link rel="stylesheet" href="src/plugins/MarkerCluster.Default.css">
+        <link rel="stylesheet" href="src/plugins/MarkerCluster.css">
+        <script src="src/plugins/leaflet.markercluster.js"></script>
+    </head>
+    <script>
+        var lyrcluster;
+        lyrcluster = L.markerClusterGroup();
+    </script>
+    <script src="src/plugins/leaflet.ajax.min.js"></script>
+
+    <script src="src/turf.min.js"></script>
+
+    <script>
+        function popupforpoint(feature, layer) {
+        layer.bindPopup(feature.properties.status);}
+        function circleforpoint(feature, latlng) {
+        return L.circle(latlng, {radius:100,color:'darkgreen',fillColor:'lightgreen',opacity:0.8});;}
+        var geojsonpointexample;
+        geojsonpointexample = L.geoJSON.ajax('src/pointexample.geojson',
+        {onEachFeature:popupforpoint, pointToLayer:circleforpoint });
+        geojsonpointexample.on('data:loaded',function(){
+            lyrcluster.addLayer(geojsonpointexample);
+            lyrcluster.addTo(mymap);
+            mymap.fitBounds(lyrcluster.getBounds());
+
+            var bboxlyrcluster=turf.bbox(lyrcluster.toGeoJSON());
+            var voronoi=turf.voronoi(lyrcluster.toGeoJSON(), {bbox:bboxlyrcluster});
+            L.geoJSON(voronoi).addTo(mymap);
+            
+        });
+    </script>
+    <script>
+        function returnpointbyid(id) {
+            var arLayers=lyrcluster.getLayers();
+            for (i = 0; i < arLayers.length-1; i++) {
+                var featureID=arLayers[i].feature.properties.id;
+                if (featureID==id){
+                    return arLayers[i]
+                }
+            }
+            return false;
+        }
+    </script>
+    <script src="src/jquery-3.7.1.min.js"></script>
+    <script>
+        var lyrsearch;
+        $('#btnfindpoint').click(function(){
+            var id=$('#txtfindpoint').val();
+            var lyr=returnpointbyid(id);
+            if(lyr){
+                if(lyrsearch){
+                    lyrsearch.remove();
+                }
+            lyrsearch=L.geoJSON(lyr.toGeoJSON()).addTo(mymap);
+            mymap.fitBounds(lyrsearch.getBounds());
+            }
+            else{
+                $('#search_error').html('.نقطه مدنظر پیدا نشد');
+            }
+        })
+    </script>
+    <script>
+        var lyrGoogle = L.tileLayer('http://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}');
+        var ctlLayers;
+        var objBasemaps;
+        var objOverlays;
+        objBasemaps = {
+            "Open Street Map":lyrOSM,
+            "Google Satellite":lyrGoogle
+        };
+
+        objOverlays = {  "cluster":lyrcluster  };
+        
+        ctlLayers=L.control.layers(objBasemaps,objOverlays).addTo(mymap);
+    </script>
+</body>
+</html>
