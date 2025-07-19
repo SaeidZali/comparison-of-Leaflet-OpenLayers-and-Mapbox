@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenLayers</title>
+  <link rel="stylesheet" href="src/ol.css">
+  <link rel="stylesheet" href="src/ol-ext.css">
+  <style>
+    *{
+        padding: 0px;
+        margin: 0px;
+    }
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+    #locate-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #locate-btn:hover {
+      background: #f0f0f0;
+    }
+    #measure-btn {
+      position: absolute;
+      top: 50px;
+      right: 10px;
+      z-index: 1;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #measure-btn:hover {
+      background: #f0f0f0;
+    }
+    .ol-tooltip {
+        position: relative;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 4px;
+        color: white;
+        padding: 4px 8px;
+        opacity: 0.7;
+        white-space: nowrap;
+        font-size: 12px;
+        cursor: default;
+        user-select: none;
+    }
+      .ol-tooltip-measure {
+        opacity: 1;
+        font-weight: bold;
+    }
+      #basemaps{
+        position: absolute;
+        top: 90px;
+        right: 10px;
+        z-index: 1;
+        padding: 8px 12px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+      #basemaps:hover {
+      background: #f0f0f0;
+    }
+    #coordinates {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 5px 10px;
+      border-radius: 3px;
+      z-index: 1;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+    }
+    .ol-popup {
+        position: absolute;
+        background-color: white;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #cccccc;
+        bottom: 12px;
+        left: -50px;
+        min-width: 70px;
+      }
+      .ol-popup:after, .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: " ";
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+      }
+      .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+      }
+      .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+      }
+      .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+      }
+      .ol-popup-closer:after {
+        content: "✖";
+      }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <button id="locate-btn">Show My Location</button>
+  <button id="measure-btn">Measure LineString</button>
+  <div id="basemaps">
+    <input type="radio" name="basemap" id="osmrbtn" value="osm">
+    <label for="osmrbtn">osm</label><br>
+    <input type="radio" name="basemap" id="googlerbtn" value="google">
+    <label for="googlerbtn">google</label><br>
+    <input type="checkbox" name="basemap" id="geojsonrbtn" value="geojson">
+    <label for="geojsonrbtn">geojson</label><br>
+    <div id="popup" class="ol-popup">
+      <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+      <div id="popup-content"></div>
+    </div>
+  </div>
+  <div id="coordinates">Coordinates: </div>
+  <script src="src/ol.js"></script>
+  <script src="src/ol-ext.js"></script>
+    <script>
+    
+    const view = new ol.View({center: ol.proj.fromLonLat([53, 33]),zoom: 5,});
+    const osm_layer=new ol.layer.Tile({source: new ol.source.OSM()});
+    const map = new ol.Map({target: 'map',layers: [osm_layer] ,view: view});
+
+    </script>
+    <script>
+
+        const locateBtn = document.getElementById('locate-btn');
+        const geolocation = new ol.Geolocation({
+            trackingOptions: {enableHighAccuracy: true,},projection: view.getProjection(),});
+        geolocation.setTracking(true);
+        const accuracyFeature = new ol.Feature();
+        const positionFeature = new ol.Feature();
+        positionFeature.setStyle(
+            new ol.style.Style({
+                image: new ol.style.Circle({radius: 6,fill: new ol.style.Fill({color: '#3399CC',}),
+                stroke: new ol.style.Stroke({color: '#fff',width: 2,}),}),}),);
+
+        const positionLayer = new ol.layer.Vector({map: map,source: new ol.source.Vector()})
+
+        window.addEventListener('load', function() {
+            locateBtn.addEventListener('click', function(){
+                const coordinates = geolocation.getPosition();
+                accuracyFeature.setGeometry(geolocation.getAccuracyGeometry());
+                positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
+                
+                const source_of_positionLayer= positionLayer.getSource();
+                source_of_positionLayer.removeFeatures(source_of_positionLayer.getFeatures())
+                source_of_positionLayer.addFeatures([accuracyFeature, positionFeature]);
+                map.getView().animate({center: coordinates,zoom: 8});
+                })});
+
+    </script>
+
+    <script>
+        const measureBtn = document.getElementById('measure-btn');
+        let measureTooltipElement = document.createElement('div');
+        measureTooltipElement.className = 'ol-tooltip ol-tooltip-measure';
+        let measureTooltip = new ol.Overlay({element: measureTooltipElement,
+            offset: [0, -15],positioning: 'bottom-center',stopEvent: false,insertFirst: false,});
+        map.addOverlay(measureTooltip);
+
+        const source_of_vector_layer = new ol.source.Vector();
+        const vector_layer = new ol.layer.Vector({source: source_of_vector_layer,
+            style: {'fill-color': 'rgba(255, 255, 255, 0.2)','stroke-color': '#ffcc33',
+            'stroke-width': 2,'circle-radius': 7,'circle-fill-color': '#ffcc33',},});
+        map.addLayer(vector_layer);
+        const style_of_source = new ol.style.Style({fill: new ol.style.Fill({
+            color: 'rgba(255, 255, 255, 0.2)',}),
+            stroke: new ol.style.Stroke({color: 'rgba(0, 0, 0, 0.5)',lineDash: [10, 10],width: 2,}),
+            image: new ol.style.Circle({radius: 5,stroke: new ol.style.Stroke({color: 'rgba(0, 0, 0, 0.7)',}),
+            fill: new ol.style.Fill({color: 'rgba(255, 255, 255, 0.2)',}),}),});
+        let draw;
+        let start_drawing=false;
+        function measure_linestring(drawing_status) {
+            if (drawing_status==false){
+                start_drawing=!drawing_status;
+                draw = new ol.interaction.Draw({source: source_of_vector_layer,type: 'LineString',style: style_of_source});
+                map.addInteraction(draw);
+                draw.on('drawstart', function (evt) {
+                    vector_layer.getSource().clear();
+                    let sketch = evt.feature;
+                    let listener = sketch.getGeometry().on('change', function (event) {
+                        const geom=event.target;
+                        let output = Math.round(ol.sphere.getLength(geom));
+                        let tooltipCoord = geom.getLastCoordinate();
+                        measureTooltipElement.innerHTML = output+' m';
+                        measureTooltip.setPosition(tooltipCoord);})})}
+            else if(drawing_status==true){start_drawing=!drawing_status;map.removeInteraction(draw)}};
+        measureBtn.addEventListener('click', function(){
+            measure_linestring(start_drawing);
+        });
+    </script>
+    <script>
+        const googleLayer = new ol.layer.Tile({
+            source: new ol.source.XYZ({url: 'https://www.google.cn/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}',
+            attributions: 'Google Satellite'})});
+        map.addLayer(googleLayer);
+        document.querySelector('#osmrbtn').addEventListener('click',function(){
+            osm_layer.setVisible(true);
+            googleLayer.setVisible(false);
+        });
+        document.querySelector('#googlerbtn').addEventListener('click',function(){
+            osm_layer.setVisible(false);
+            googleLayer.setVisible(true);
+        })
+    </script>
+    <script>
+        const marker = new ol.Feature({geometry: new ol.geom.Point(ol.proj.fromLonLat([53.33, 33.33]))});
+        marker.setStyle(new ol.style.Style({image: new ol.style.Circle({radius: 10,
+            fill: new ol.style.Fill({color: 'red'}),stroke: new ol.style.Stroke({
+            color: 'white',width: 2})})}));
+        const markerLayer = new ol.layer.Vector({source: new ol.source.Vector()});
+        map.addLayer(markerLayer);
+        markerLayer.getSource().addFeature(marker);
+        const dragInteraction = new ol.interaction.Modify({features: new ol.Collection([marker])});
+        map.addInteraction(dragInteraction);
+        function updateCoordinates() {
+            const coord = marker.getGeometry().getCoordinates();
+            const lonLat = ol.proj.toLonLat(coord);
+            document.getElementById('coordinates').innerHTML = 
+            `Coordinates: ${lonLat[0].toFixed(4)}, ${lonLat[1].toFixed(4)}`;}
+        marker.getGeometry().on('change', function() {
+            updateCoordinates();});
+        // Initial coordinates display
+        updateCoordinates();
+    </script>
+    <script>
+    const lineCoordinates = [
+      [51.416016, 35.666222],//Tehran
+      [50.910645, 34.606085],//Qom
+      [51.734619, 32.694866]//Isfahan
+    ];
+    const lineFeature = new ol.Feature({geometry: new ol.geom.LineString(lineCoordinates)
+        .transform('EPSG:4326', 'EPSG:3857')
+    });
+    const lineStyle = new ol.style.Style({
+      stroke: new ol.style.Stroke({color: '#ff0000',width: 3 // 3 pixels wide
+      })});
+    lineFeature.setStyle(lineStyle);
+    const lineSource = new ol.source.Vector({features: [lineFeature]
+    });
+    const lineLayer = new ol.layer.Vector({source: lineSource
+    });
+    map.addLayer(lineLayer);
+    </script>
+    <script>
+        const geojsonObject = {'type': 'FeatureCollection',
+            'crs': {'type': 'name','properties': {'name': 'EPSG:4326',},},
+            'features': [{'type': 'Feature','geometry': {'type': 'Polygon','coordinates': [
+            [[53.71037302711565, 37.002809811388886],[52.943905313226054, 36.65822084768692],
+            [51.28218336957411, 36.748286510320554],[48.66326081144223, 37.94331158751778],
+            [48.147760160130105, 39.765538043191725],[46.23567362775185, 38.920106990479866],
+            [44.041515074690125, 40.15767301084165],[46.27711810088803, 35.80529153519747],
+            [45.54883990323157, 34.45438180239613],[48.54423210233159, 30.00504355001081],
+            [49.93167056134877, 30.23116426390429],[54.637984459551234, 26.73887496785443],
+            [56.576064245655175, 27.1838643201674],[57.093331286116154, 25.74074165431952],
+            [61.562869916367816, 25.16339676072907],[63.358801898986684, 26.97266609089354],
+            [60.79990037710354, 30.269823276076252],[60.90288546113189, 36.652610107581836],
+            [57.423301089614654, 38.064594381263134],[54.356384835323524, 37.34552262316096]],],},},],};
+    </script>
+    <script>
+        function projectTo3857(coord) {
+            const [lon, lat] = coord;
+            const x = lon * (Math.PI / 180) * 6378137;
+            const y = Math.log(Math.tan((Math.PI / 4) + ((lat * Math.PI / 180) / 2))) * 6378137;
+            return [x, y];};
+        function convertCoordinates(coords) {
+            if (Array.isArray(coords[0])) {
+                return coords.map(convertCoordinates);
+            } else {
+                return projectTo3857(coords);}};
+        function convert4326To3857(geojson) {
+            const converted = JSON.parse(JSON.stringify(geojson));
+            // Update the CRS to EPSG:3857
+            converted.crs.properties.name = 'EPSG:3857';
+            converted.features.forEach(feature => {
+            if (feature.geometry && feature.geometry.coordinates) {
+                feature.geometry.coordinates = convertCoordinates(feature.geometry.coordinates);}});
+        return converted;};
+        const convertedGeoJSON = convert4326To3857(geojsonObject);
+    </script>
+    <script>
+        const styles = [/* We are using two different styles for the polygons:
+                        *  - The first style is for the polygons themselves.
+                        *  - The second style is to draw the vertices of the polygons.*/
+        new ol.style.Style({stroke: new ol.style.Stroke({color: 'blue',width: 3,}),
+                            fill: new ol.style.Fill({color: 'rgba(0, 0, 255, 0.1)',}),}),
+        new ol.style.Style({image: new ol.style.Circle({radius: 5,
+                            fill: new ol.style.Fill({color: 'orange',}),}),
+        geometry: function (feature) {
+            // return the coordinates of the first ring of the polygon
+            const coordinates = feature.getGeometry().getCoordinates()[0];
+            return new ol.geom.MultiPoint(coordinates);},}),];
+        const polygonsource = new ol.source.Vector({
+            features: new ol.format.GeoJSON().readFeatures(convertedGeoJSON),});
+        const polygonlayer = new ol.layer.Vector({source: polygonsource,style: styles,});
+        map.addLayer(polygonlayer);
+    </script>
+    <script>
+        const geojson_source=new ol.source.Vector({
+            url: 'https://raw.githubusercontent.com/SaeidZali/comparison-of-Leaflet-OpenLayers-and-Mapbox/refs/heads/main/leaflet/src/pointexample.geojson',
+            format: new ol.format.GeoJSON()});
+        const geojson_layer = new ol.layer.Vector({title: 'geojson Layer',
+            source: geojson_source,
+            style: {'fill-color': 'rgba(255, 255, 255, 0.2)','stroke-color': '#ffcc33',
+            'stroke-width': 2,'circle-radius': 7,'circle-fill-color': '#ffcc33',},
+        });
+        map.addLayer(geojson_layer);
+        geojson_source.on('addfeature', function() {
+            map.getView().fit(geojson_source.getExtent());});
+    </script>
+    <script>
+        document.querySelector('#geojsonrbtn').checked=true;
+        document.querySelector('#geojsonrbtn').addEventListener('click',function(){
+            geojson_layer.setVisible(!geojson_layer.getVisible());
+            clusters.setVisible(!clusters.getVisible());
+            clusterHulls.setVisible(!clusterHulls.getVisible());
+        });
+    </script>
+    <script>
+      function monotoneChainConvexHull(points, options = {}) {
+        const { sorted } = options;
+        if (!sorted) {
+          points = points.slice().sort(byXThenY);
+          }
+        const n = points.length;
+        const result = new Array(n * 2);
+        let k = 0;
+        for (let i = 0; i < n; i++) {
+          const point = points[i];
+          while (k >= 2 && cw(result[k - 2], result[k - 1], point) <= 0) {
+            k--;
+          }
+          result[k++] = point;
+          }
+        const t = k + 1;
+        for (let i = n - 2; i >= 0; i--) {
+          const point = points[i];
+          while (k >= t && cw(result[k - 2], result[k - 1], point) <= 0) {
+            k--;
+          }
+          result[k++] = point;
+        }
+      return result.slice(0, k - 1);}
+      function cw(p1, p2, p3) {
+        return (p2[1] - p1[1]) * (p3[0] - p1[0]) - (p2[0] - p1[0]) * (p3[1] - p1[1]);
+      }
+      function byXThenY(point1, point2) {
+        if (point1[0] === point2[0]) {
+      return point1[1] - point2[1];}
+      return point1[0] - point2[0];
+      }
+    </script>
+    <script>
+      const outerCircleFill = new ol.style.Fill({color: 'rgba(255, 153, 102, 0.3)',});
+      const innerCircleFill = new ol.style.Fill({color: 'rgba(255, 165, 0, 0.7)',});
+      const textFill = new ol.style.Fill({color: '#fff',});
+      const textStroke = new ol.style.Stroke({color: 'rgba(0, 0, 0, 0.6)',width: 3,});
+      const innerCircle = new ol.style.Circle({radius: 14,fill: innerCircleFill,});
+      const outerCircle = new ol.style.Circle({radius: 20,fill: outerCircleFill,});
+      function clusterMemberStyle(clusterMember) {
+        return new ol.style.Style({geometry: clusterMember.getGeometry()});}
+      let clickFeature, clickResolution;
+      function clusterStyle(feature) {
+        const size = feature.get('features').length;
+        if (size > 1) {
+          return [new ol.style.Style({image: outerCircle,}),
+                  new ol.style.Style({image: innerCircle,
+                  text: new ol.style.Text({text: size.toString(),fill: textFill,stroke: textStroke,}),}),];}
+      const originalFeature = feature.get('features')[0];
+        return clusterMemberStyle(originalFeature);}
+      const clusterSource = new ol.source.Cluster({distance: 350,source: geojson_source,});
+      const clusters = new ol.layer.Vector({source: clusterSource,style: clusterStyle,});
+      map.addLayer(clusters);
+
+      const convexHullFill = new ol.style.Fill({color: 'rgba(255, 153, 0, 0.4)',});
+      const convexHullStroke = new ol.style.Stroke({color: 'rgba(204, 85, 0, 1)',width: 1.5,});
+      function clusterHullStyle(cluster) {
+      const originalFeatures = cluster.get('features');
+      const points = originalFeatures.map((feature) =>feature.getGeometry().getCoordinates(),);
+        return new ol.style.Style({geometry: new ol.geom.Polygon([monotoneChainConvexHull(points)]),
+          fill: convexHullFill,stroke: convexHullStroke,});}
+      const clusterHulls = new ol.layer.Vector({source: clusterSource,style: clusterHullStyle,});
+      map.addLayer(clusterHulls);
+    </script>
+    <script>
+      const container = document.getElementById('popup');
+      const content = document.getElementById('popup-content');
+      const closer = document.getElementById('popup-closer');
+      const overlay = new ol.Overlay({element: container,
+        autoPan: {animation: {duration: 250,},},});
+      closer.onclick = function () {overlay.setPosition(undefined);closer.blur();
+        return false;};
+      map.addOverlay(overlay)
+      map.on('singleclick', function (evt) {
+        map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+          if (layer === geojson_layer) {
+            const coordinate = evt.coordinate;
+            const properties = feature.getProperties();
+            content.innerHTML = properties.id + ' : ' + properties.status;
+            overlay.setPosition(coordinate);}})});
+    </script>
+    <script>
+      function styling(feature) {
+        const colorAttribute = feature.values_.status
+      let circleFillColor;
+      switch(colorAttribute) {
+        case 'inactive': 
+          circleFillColor = '#ff0000'; // red
+        break;
+        case 'active':
+          circleFillColor = '#00ff00'; // green
+        break;}
+      return new ol.style.Style({
+        fill: new ol.style.Fill({color: 'rgba(255, 255, 255, 0.2)'
+        }),
+        stroke: new ol.style.Stroke({color: '#ffcc33',
+        width: 2}),
+        image: new ol.style.Circle({radius: 7,fill: new ol.style.Fill({
+          color: circleFillColor})})});}
+        geojson_layer.setStyle(styling)
+    </script>
+    <script>
+      const select = new ol.interaction.Select({layers: [geojson_layer]});
+      map.addInteraction(select);
+      const search = new ol.control.SearchFeature({
+        source: geojson_source,property: 'id',
+        sort: function(f1,f2) {
+          if (search.getSearchString(f1) < search.getSearchString(f2)) return -1;
+          if (search.getSearchString(f1) > search.getSearchString(f2)) return 1;
+        return 0;}});
+      map.addControl (search);
+      // Select feature when click on the reference index
+      search.on('select', function(e) {select.getFeatures().clear();
+        select.getFeatures().push (e.search);
+        const p = e.search.getGeometry().getFirstCoordinate();
+        map.getView().animate({ center:p,zoom: 17 });});
+    </script>
+</body>
+</html>
+
+
+
+    
