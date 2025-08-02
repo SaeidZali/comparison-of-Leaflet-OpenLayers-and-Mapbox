@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>maplibre</title>
+    <link rel='stylesheet' href='maplibre-gl.css' />
+    <link rel="stylesheet" href="maplibre-gl-basemaps.css">
+    <style>
+        body { margin: 0; padding: 0; }
+        html, body, #map { height: 100%; }
+    </style>
+    <style>
+    .coordinates {
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        position: absolute;
+        bottom: 90px;
+        left: 10px;
+        padding: 5px 10px;
+        margin: 0;
+        font-size: 11px;
+        line-height: 18px;
+        border-radius: 3px;
+        display: none;
+    }
+    </style>
+    <style>
+    #controls {
+        position: absolute;
+        top: 100px;
+        left: 10px;
+        z-index: 1;
+        background: white;
+        padding: 5px;
+        border-radius: 3px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    button { margin: 0 5px; }
+    </style>
+    <style>
+        #checkboxes{
+            position: absolute;
+            top:140px;
+            left:10px;
+            z-index: 1;
+            background: white;
+            padding: 5px;
+            border-radius: 3px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+    </style>
+    <style>
+        #div_of_filter{
+            position: absolute;
+            top:215px;
+            left:10px;
+            z-index: 1;
+            background: white;
+            padding: 5px;
+            border-radius: 3px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        #text_of_filter{
+            width: 110px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <pre id="coordinates" class="coordinates"></pre>
+    <div id="controls">
+        <button id="toggle-points">Toggle Points</button>
+    </div>
+    <div id="checkboxes">
+        <input type="radio" name="show" id="all" checked>
+        <label for="all">all</label><br>
+        <input type="radio" name="show" id="active">
+        <label for="active">active</label><br>
+        <input type="radio" name="show" id="inactive">
+        <label for="inactive">inactive</label>
+    </div>
+    <div id="div_of_filter">
+        <input type="text" name="" id="text_of_filter" placeholder="your id for filtering" autocomplete="off">
+        <button onclick="do_filtering()">
+            do
+        </button>
+    </div>
+    <script src='maplibre-gl.js'></script>
+    <script src="maplibre-gl-basemaps.js"></script>
+    <script>
+    const map = new maplibregl.Map({container: "map",attributionControl: false,
+        style:{version:8,sources:{},layers:[],glyphs:"https://fonts.openmaptiles.org/{fontstack}/{range}.pbf"}});
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+    map.addControl(new MaplibreGLBasemapsControl({basemaps: [{id: "opentopomap",
+        tiles: ["https://tile.opentopomap.org/{z}/{x}/{y}.png"],sourceExtraParams: {tileSize: 256,
+        attribution: "Kartendarstellung: &copy; <a href='https://opentopomap.org'>OpenTopoMap</a>",
+        minzoom: 0,maxzoom: 22}},{id: "OpenStreetMap",tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+        ],sourceExtraParams: {tileSize: 256,attribution: "&copy; OpenStreetMap Contributors",
+        minzoom: 0,maxzoom: 20}}],initialBasemap: "OpenStreetMap",expandDirection: "top",}),
+        "bottom-left",);
+    map.on('load', function() {map.style.setGlyphs("https://fonts.openmaptiles.org/{fontstack}/{range}.pbf");})
+    </script>
+    <script>
+    // Add geolocate control to the map.
+    map.addControl(new maplibregl.GeolocateControl({
+        positionOptions: {enableHighAccuracy: true},trackUserLocation: true}));
+    </script>
+    <script src="maplibre-gl-measures.js"></script>
+    <script>
+    map.on('load', function() {map.addControl(new maplibreGLMeasures.default({}), 'top-left');});
+    </script>
+    <script>
+    const coordinates = document.getElementById('coordinates');
+    const marker = new maplibregl.Marker({draggable: true})
+        .setLngLat([51.49589914491878,35.803556858385505])
+        .addTo(map);
+    function onDragEnd() {
+        const lngLat = marker.getLngLat();
+        coordinates.style.display = 'block';
+        coordinates.innerHTML =
+            `Longitude: ${lngLat.lng}<br />Latitude: ${lngLat.lat}`;
+    }
+    marker.on('dragend', onDragEnd);
+    </script>
+    <script>
+        map.on('load', () => {
+        setTimeout(function() {map.addSource('route', {'type': 'geojson','data': {'type': 'Feature',
+            'properties': {},'geometry': {'type': 'LineString','coordinates': [
+                [51.45434485880796, 35.59824575698154],[51.456235335527424, 35.61016038520236],
+                [51.46853964235592, 35.614827967338584],[51.471512851019554, 35.61882853524989],
+                [51.46454145838044, 35.62282890305673],[51.46341368954711, 35.64299415677054],
+                [51.460790393113, 35.65382528034745],[51.461097966422045, 35.659406627111906],
+                [51.464688665951, 35.66724032482101],[51.46448361707672, 35.670488670113926],
+                [51.45975792579526, 35.6754473862168],[51.460168023542224, 35.68294259744374],
+                [51.45708921120851, 35.68996000082386],[51.45698668676587, 35.71477026949451],
+                [51.47144263233085, 35.72467556849401],[51.48323294255019, 35.73790845778494],
+                [51.483541129637814, 35.74714421296447],[51.485489093934746, 35.75305184342106],
+                [51.48456637398843, 35.75945821458262],[51.48627443070643, 35.773196405858215],
+                [51.49527156769835, 35.800399774013215]]}}});
+        map.addLayer({'id': 'route','type': 'line','source': 'route','layout': {'line-join': 'round',
+            'line-cap': 'round'},'paint': {'line-color': '#888','line-width': 8}});
+    // Define a bounding box
+    const bounds = [[51, 35], [52, 36]];
+    // Fit the map to the defined bounds with some padding
+    map.fitBounds(bounds, {padding: 20,maxZoom: 20});}, 1000);});
+    </script>
+    <script>
+        map.on('load', () => {map.addSource('airport', {'type': 'geojson','data': {
+            'type': 'Feature','geometry': {'type': 'Polygon','coordinates': [
+            [[51.33997268487005, 35.713807043720095],[51.340616117076735, 35.68052239701508],
+            [51.331390417287736, 35.67898937291736],[51.32495937845178, 35.67507133935436],
+            [51.26123362998709, 35.67910809820383],[51.26781082879674, 35.70522336665374],
+            [51.30230458255289, 35.69952621922209],[51.33997268487005, 35.713807043720095]]]}}});
+        map.addLayer({'id': 'airport','type': 'fill','source': 'airport','layout': {},
+            'paint': {'fill-color': '#088','fill-opacity': 0.8}});});
+    </script>
+    <script>
+        map.on('load', () => {
+        map.style.glyphManager.url='https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
+        map.addSource('points-layer', {type: 'geojson',
+            data: 'pointexample.geojson',cluster: true,clusterMaxZoom: 14,clusterRadius: 50});
+        map.addLayer({id: 'clusters',type: 'circle',source: 'points-layer',filter: ['has', 'point_count'],
+            paint: {
+                // Use step expressions (https://maplibre.org/maplibre-style-spec/#expressions-step)
+                'circle-color': ['step',['get', 'point_count'],'#51bbd6',10,'#f1f075',20,'#f28cb1'],
+                'circle-radius': ['step',['get', 'point_count'],20,10,30,20,40]}});
+        map.addLayer({id: 'cluster-count',type: 'symbol',source: 'points-layer',
+            filter: ['has', 'point_count'],layout: {'text-field': '{point_count_abbreviated}',
+            'text-font': ['Open Sans Regular'],'text-size': 12}});
+        map.addLayer({id: 'unclustered-point',type: 'circle',source: 'points-layer',
+            filter: ['!', ['has', 'point_count']],paint: {
+                'circle-color': ['case',
+                ['==', ['get', 'status'], 'active'], '#53db83','#db5371'] // default color
+                ,'circle-radius': 7,'circle-stroke-width': 1,'circle-stroke-color': '#fff'}});});
+    </script>
+    <script>
+        const layerId='clusters';
+        document.getElementById('toggle-points').addEventListener('click', function() {
+            const visibility = map.getLayoutProperty(layerId, 'visibility');
+            if (visibility === 'visible' || visibility === undefined) {
+                map.setLayoutProperty(layerId, 'visibility', 'none');
+                map.setLayoutProperty('cluster-count', 'visibility', 'none');
+                map.setLayoutProperty('unclustered-point', 'visibility', 'none');
+            } 
+            else {
+                map.setLayoutProperty(layerId, 'visibility', 'visible');
+                map.setLayoutProperty('cluster-count', 'visibility', 'visible');
+                map.setLayoutProperty('unclustered-point', 'visibility', 'visible');
+            };
+        });
+        setTimeout(function() {map.setCenter([51.4,35.7]);
+        map.setZoom(10);},4000)
+    </script>
+    <script>
+        map.on('click', 'unclustered-point', (e) => {
+            const coordinates = e.features[0].geometry.coordinates.slice();
+            const status = e.features[0].properties.status;
+            new maplibregl.Popup().setLngLat(coordinates).setHTML(`status: ${status}`).addTo(map);});
+        map.on('mouseenter', 'unclustered-point', () => {map.getCanvas().style.cursor = 'pointer';});
+        map.on('mouseleave', 'unclustered-point', () => {map.getCanvas().style.cursor = '';});
+    </script>
+    <script>
+        map.on('load', () => {
+            map.addSource('active', {type: 'geojson',data: 'pointexample.geojson',
+            filter: ['==', ['get', 'status'], 'active'],cluster: true,clusterMaxZoom: 14,
+            clusterRadius: 50});
+            map.addLayer({id: 'active_clusters',type: 'circle',source: 'active',
+            filter: ['has', 'point_count'],paint: {'circle-color': '#53db83',
+            'circle-radius': ['step',['get', 'point_count'],20,10,30,20,40]},layout: {visibility: 'none'}});
+            map.addLayer({id: 'active-cluster-count',type: 'symbol',source: 'active',
+            filter: ['has', 'point_count'],layout: {'text-field': '{point_count_abbreviated}',
+            'text-font': ['Open Sans Regular'],'text-size': 12,visibility: 'none'}});
+            map.addSource('inactive', {type: 'geojson',data: 'pointexample.geojson',
+            filter: ['==', ['get', 'status'], 'inactive'],cluster: true,clusterMaxZoom: 14,
+            clusterRadius: 50});
+            map.addLayer({id: 'inactive_clusters',type: 'circle',source: 'inactive',
+            filter: ['has', 'point_count'],paint: {'circle-color': '#db5371',
+            'circle-radius': ['step',['get', 'point_count'],20,10,30,20,40]},layout: {visibility: 'none'}});
+            map.addLayer({id: 'inactive-cluster-count',type: 'symbol',source: 'inactive',
+            filter: ['has', 'point_count'],layout: {'text-field': '{point_count_abbreviated}',
+            'text-font': ['Open Sans Regular'],'text-size': 12,visibility: 'none'}});
+        });
+    </script>
+    <script>
+        const radioButtons = document.getElementsByName("show");
+        map.on('load', () => {
+        radioButtons.forEach(radioButton => {
+            radioButton.addEventListener('click', function() {
+            if (this.id=='all'){
+                map.setLayoutProperty('clusters', 'visibility', 'visible');
+                map.setLayoutProperty('cluster-count', 'visibility', 'visible');
+                map.setLayoutProperty('active_clusters', 'visibility', 'none');
+                map.setLayoutProperty('active-cluster-count', 'visibility', 'none');
+                map.setLayoutProperty('inactive_clusters', 'visibility', 'none'); 
+                map.setLayoutProperty('inactive-cluster-count', 'visibility', 'none');               
+            }
+            if(this.id=='active'){
+                map.setLayoutProperty('clusters', 'visibility', 'none');
+                map.setLayoutProperty('cluster-count', 'visibility', 'none');
+                map.setLayoutProperty('active_clusters', 'visibility', 'visible');
+                map.setLayoutProperty('active-cluster-count', 'visibility', 'visible');
+                map.setLayoutProperty('inactive_clusters', 'visibility', 'none'); 
+                map.setLayoutProperty('inactive-cluster-count', 'visibility', 'none'); 
+            }
+            if(this.id=='inactive'){
+                map.setLayoutProperty('clusters', 'visibility', 'none');
+                map.setLayoutProperty('cluster-count', 'visibility', 'none');
+                map.setLayoutProperty('active_clusters', 'visibility', 'none');
+                map.setLayoutProperty('active-cluster-count', 'visibility', 'none');
+                map.setLayoutProperty('inactive_clusters', 'visibility', 'visible'); 
+                map.setLayoutProperty('inactive-cluster-count', 'visibility', 'visible'); 
+            }
+        });});})
+    </script>
+    <script>
+        let filter_id=0;
+        function filtering_feature() {
+            map.setZoom(10);
+            map.setFilter('search', ['==', ['get', 'id'], filter_id]);
+            setTimeout(function() {
+            let features=map.querySourceFeatures('search-layer');
+            let filtered_feature;
+            features.forEach((feature, index) => {
+                if (feature.properties.id==filter_id){filtered_feature=feature}});
+            if (filtered_feature){
+                map.flyTo({center: filtered_feature.geometry.coordinates,zoom: 17,speed: 1.2,
+            curve: 1.42,essential: true})
+        }},2000)};
+        map.on('load', () => {
+        map.addSource('search-layer', {type: 'geojson',data: 'pointexample.geojson'});
+        map.addLayer({id: 'search',type: 'circle',source: 'search-layer',paint: 
+        {'circle-color': '#2672B6','circle-radius': 10}});
+        filtering_feature();});
+        function do_filtering() {
+            filter_id=Number(document.getElementById('text_of_filter').value);
+            filtering_feature();
+        }
+    </script>
+</body>
+</html>
